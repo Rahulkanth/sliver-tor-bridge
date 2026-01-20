@@ -1,3 +1,8 @@
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Docker](https://img.shields.io/badge/docker-supported-blue)
+![Sliver](https://img.shields.io/badge/Sliver-compatible-orange)
+
 # sliver-tor-bridge
 
 tor-based transport bridge for sliver c2. creates a hidden service and proxies traffic to your sliver server so your real ip is never exposed.
